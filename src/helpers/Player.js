@@ -1,5 +1,5 @@
 import ACTIONS from './ACTIONS';
-import logd from './logger.js'
+import {logger} from './logger.js'
 
 class Player {
   constructor(options) {
@@ -18,7 +18,7 @@ class Player {
   }
 
   fold() {
-    logd('Player ' + this.name + ' FOLD');
+    logger('Player ' + this.name + ' FOLD');
 
     this.lastAction = ACTIONS.FOLD;
     this.hasDone = true;
@@ -27,7 +27,7 @@ class Player {
   }
 
   allin() {
-    logd('Player ' + this.name + ' ALL-IN : ' + this.chips);
+    logger('Player ' + this.name + ' ALL-IN : ' + this.chips);
 
     this.lastAction = ACTIONS.ALL_IN;
     this.hasDone = true;
@@ -44,10 +44,10 @@ class Player {
 
     if (diff > 0) {
       this.lastAction = "call";
-      logd('Player ' + this.name + ' CALL : ' + diff);
+      logger('Player ' + this.name + ' CALL : ' + diff);
     } else {
       this.lastAction = "check";
-      logd('Player ' + this.name + ' CHECK');
+      logger('Player ' + this.name + ' CHECK');
     }
     this.game.incrementPlayerTurn();
   }
@@ -58,7 +58,7 @@ class Player {
     let diff = this.game.getHighestBet() - this.bet;
     this.addBet(diff + amount);
 
-    logd('Player ' + this.name + ' Raises : ' + (diff + amount));
+    logger('Player ' + this.name + ' Raises : ' + (diff + amount));
 
     this.game.requestPlayerAction(); // other players must act
     this.hasActed = true;

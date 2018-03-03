@@ -1,13 +1,12 @@
 import React, {Component} from 'react';
 import Game from './helpers/Game';
 import ACTIONS from './helpers/ACTIONS';
+import {handLog} from './helpers/logger';
 
 class App extends Component {
 
   constructor(props) {
     super(props);
-
-
     this.game = new Game();
     this.game.addPlayer({
       name: "A",
@@ -27,21 +26,6 @@ class App extends Component {
     this.state = {
       currentPlayer: this.game.getCurrentPlayer(),
     };
-
-    // this.game.getCurrentPlayer().callOrCheck();      // A
-    // this.game.getCurrentPlayer().callOrCheck();      // B
-    // this.game.getCurrentPlayer().raise(2000);        // C
-    // this.game.getCurrentPlayer().raise(2000);        // A
-    // this.game.getCurrentPlayer().fold();             // B
-    // this.game.getCurrentPlayer().callOrCheck();      // C
-    // this.game.getCurrentPlayer().callOrCheck();      // A
-    // this.game.getCurrentPlayer().raise(1000);        // C
-    // this.game.getCurrentPlayer().callOrCheck();      // A
-    // this.game.getCurrentPlayer().callOrCheck();      // C
-    // this.game.getCurrentPlayer().raise(3000);        // A
-    // this.game.getCurrentPlayer().callOrCheck();      // C
-    // this.game.getCurrentPlayer().callOrCheck();      // A
-    // this.game.getCurrentPlayer().callOrCheck();      // C
   }
 
   takeAction = (player, action, amount) => {
@@ -95,6 +79,8 @@ class App extends Component {
         <div>currentPlayer {currentPlayer.name}</div>
         <div>Current Highest Round Bet {this.game.getHighestBet()}</div>
         <div>Pot {this.game.getPot()}</div>
+
+        {handLog.map(message => <div>{message}</div>)}
       </div>
     );
   }

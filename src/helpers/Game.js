@@ -1,11 +1,16 @@
 import Player from './Player.js';
 import Deck from './Deck.js';
-import logd from './logger.js'
+import {logger} from './logger.js'
+
+const numberCardsForRound = {
+  'flop': 3,
+  'turn': 1,
+  'river': 1,
+};
 
 class Game {
   constructor() {
-    // Game attributes
-    this.BET = 2;
+    this.bigBlind = 2;
 
     this.players = [];          // array of Player object, represents all players in this game
     this.round = 'idle';        // current round in a game
@@ -16,19 +21,15 @@ class Game {
     this.deck = new Deck();     // deck of playing cards
   }
 
-  /**
-   * Adds new player to the game
-   * @param attr
-   */
   addPlayer = function (attr) {
     let newPlayer = new Player(attr);
-    logd('Player ' + newPlayer.name + ' added to the game');
+    logger('Player ' + newPlayer.name + ' added to the game');
     newPlayer.game = this;
     this.players.push(newPlayer);
   };
 
   reset = function () {
-    logd('Game reset');
+    logger('Game reset');
     this.round = 'idle';
     this.communityCards = [];
     this.pot = 0;
@@ -36,59 +37,38 @@ class Game {
     this.players.forEach(player => player.reset());
   };
 
-  /**
-   * Starts the 'deal' Round
-   */
   start = function () {
     this.reset();
-    logd('========== STARTING GAME ==========');
+    logger('========== STARTING GAME ==========');
+    logger('Player ' + this.players[this.dealerPos].name + ' is the dealer');
 
-    // deal two cards to each players
-    for (let i = 0; i < this.players.length; i++) {
-      let c1 = this.deck.drawCard();
-      let c2 = this.deck.drawCard();
-      logd('Player ' + this.players[i].name + ' gets card : ' + c1 + ' & ' + c2);
-      this.players[i].firstCard = c1;
-      this.players[i].secondCard = c2;
-    }
-
-    // determine dealer, small blind, big blind
-    // modulus with total number of players
-    // numbers will back to 0 if exceeds the number of players
-    logd('Player ' + this.players[this.dealerPos].name + ' is the dealer');
     let smallBlindPos = (this.dealerPos + 1) % this.players.length;
     let bigBlindPos = (this.dealerPos + 2) % this.players.length;
 
     // small and big pays blind
-    this.players[smallBlindPos].addBet(1 / 2 * this.BET);
-    this.players[bigBlindPos].addBet(this.BET);
+    this.players[smallBlindPos].addBet(1 / 2 * this.bigBlind);
+    this.players[bigBlindPos].addBet(this.bigBlind);
     //
-    logd('Player ' + this.players[smallBlindPos].name + ' pays small blind : ' + (1 / 2 * this.BET));
-    logd('Player ' + this.players[bigBlindPos].name + ' pays big blind : ' + this.BET);
+    logger('Player ' + this.players[smallBlindPos].name + ' pays small blind : ' + (1 / 2 * this.bigBlind));
+    logger('Player ' + this.players[bigBlindPos].name + ' pays big blind : ' + this.bigBlind);
 
     // determine whose turn it is
     this.turnPos = (bigBlindPos + 1) % this.players.length;
-    logd('Now its player ' + this.players[this.turnPos].name + '\'s turn');
+    logger('Now its player ' + this.getCurrentPlayer.name + '\'s turn');
 
     // begin game, start 'deal' Round
-    logd('========== Round DEAL ==========');
+    logger('========== Round DEAL ==========');
     this.round = 'deal';
   };
 
   incrementPlayerTurn = function () {
     do {
       this.turnPos = (this.turnPos + 1) % this.players.length;
-    } while (this.players[this.turnPos].hasDone);
+    } while (this.getCurrentPlayer().hasDone);
 
     this.checkForNextRound();
   };
 
-  /**
-   * Check if ready to begin new round
-   * Round ends when all players' bet are equal,
-   * With exception Fold and All-in players
-   * @returns {boolean}
-   */
   playersStillLeftToAct = function () {
     let playersStillLeftToAct = this.players.filter(player =>
       !player.hasActed && !player.hasDone);
@@ -107,126 +87,67 @@ class Game {
     return false;
   }
 
-  /**
-   * Play the next round
-   */
-  nextRound = function () {
-    if (this.round === 'idle') {
-      this.start();
-    } else if (this.round === 'deal') {
-      this.resetPlayerBets();
-      this.flop();
-    } else if (this.round === 'flop') {
-      this.resetPlayerBets();
-      this.turn();
-    } else if (this.round === 'turn') {
-      this.resetPlayerBets();
-      this.river();
-    } else if (this.round === 'river') {
-      this.resetPlayerBets();
-      this.showdown();
+  nextRound = () => {
+    switch(this.round) {
+      case 'idle':
+        this.start();
+        break;
+      case 'deal':
+        this.startBettingRound('flop');
+        break;
+      case 'flop':
+        this.startBettingRound('turn');
+        break;
+      case 'turn':
+        this.startBettingRound('river');
+        break;
+      case 'river':
+        this.showdown();
+        break;
+      default:
+        this.start();
     }
   };
 
-  /**
-   * Checks if ready to next round
-   * If yes, starts the next round
-   */
   checkForNextRound = function () {
     if (this.isEndOfHand()) {
-      logd('========== ENDING HAND ==========');
+      logger('========== ENDING HAND ==========');
       this.round = 'idle';
-      this.nextRound();
     }
     if (this.playersStillLeftToAct()) {
-      logd('begin next round');
+      logger('begin next round');
       this.nextRound();
     } else {
-      logd('cannot begin next round, players still left to act');
+      logger('cannot begin next round, players still left to act');
     }
   };
 
-  /**
-   * Starts the 'flop' Round
-   */
-  flop = function () {
-    logd('========== Round FLOP ==========');
-    this.round = 'flop';
-    // deal three cards in board
-    this.communityCards[0] = this.deck.drawCard();
-    this.communityCards[1] = this.deck.drawCard();
-    this.communityCards[2] = this.deck.drawCard();
-    // begin betting
-    logd('Community cards : ' + this.communityCards[0] + ', ' + this.communityCards[1] + ', ' + this.communityCards[2]);
-    // other players must act
+  drawCards = (cardsToDraw) => {
+    for(let i = 0; i < cardsToDraw; i++){
+      this.communityCards.push(this.deck.drawCard());
+    }
+  };
+
+  logCommunityCards = () => {
+    let message = 'Community cards :';
+    message = this.communityCards.reduce((memo, card) =>
+      memo.concat(` ${card}`), message);
+    logger(message);
+  };
+
+  startBettingRound = (round) => {
+    logger(`========== Round ${round} ==========`);
+    this.round = round;
+    this.resetPlayerBets();
+    this.drawCards(numberCardsForRound[round]);
+    this.logCommunityCards();
     this.requestPlayerAction();
   };
 
-  /**
-   * Starts the 'turn' Round
-   */
-  turn = function () {
-    logd('========== Round TURN ==========');
-    this.round = 'turn';
-    // deal fourth card
-    this.communityCards[3] = this.deck.drawCard();
-    logd('Community cards : ' + this.communityCards[0] + ', ' + this.communityCards[1] + ', ' + this.communityCards[2] + ', ' + this.communityCards[3]);
-    // other players must act
-    this.requestPlayerAction();
-  };
-
-  /**
-   * Starts the 'river' Round
-   */
-  river = function () {
-    logd('========== Round RIVER ==========');
-    this.round = 'river';
-    // deal fifth card
-    this.communityCards[4] = this.deck.drawCard();
-    // begin betting
-    logd('Community cards : ' + this.communityCards[0] + ', ' + this.communityCards[1] + ', ' + this.communityCards[2] + ', ' + this.communityCards[3] + ', ' + this.communityCards[4]);
-    // other players must act
-    this.requestPlayerAction();
-  };
-
-  /**
-   * Starts the 'showdown' Round
-   */
   showdown = function () {
-    logd('========== SHOWDOWN ==========');
+    logger('========== SHOWDOWN ==========');
     this.round = 'showdown';
-    // gather all hands
-    let hands = [];
-    for (let i = 0; i < this.players.length; i++) {
-      hands.push([
-        this.players[i].firstCard,
-        this.players[i].secondCard,
-        this.communityCards[0],
-        this.communityCards[1],
-        this.communityCards[2],
-        this.communityCards[3],
-        this.communityCards[4]
-      ]);
-    }
-    // evaluate all cards
-    // let evalHands = [];
-    for (let i = 0; i < hands.length; i++) {
-      // evalHands.push(PokerEvaluator.evalHand(hands[i]));
-      console.log('hand', hands[i])
-    }
-
-    logd('Community cards : ' + this.communityCards[0] + ', ' + this.communityCards[1] + ', ' + this.communityCards[2] + ', ' + this.communityCards[3] + ', ' + this.communityCards[4]);
-    // get highest value
-    // let highestVal = -9999;
-    // // let highestIndex = -1;
-    // for (let i=0; i<evalHands.length; i++) {
-    //   logd('Player ' + this.players[i].name + ' : ' + this.players[i].firstCard + ', ' + this.players[i].secondCard + ' | strength : ' + evalHands[i].value + ' | ' + evalHands[i].handName);
-    //   if (highestVal < evalHands[i].value) {
-    //     highestVal = evalHands[i].value;
-    //     highestIndex = i;
-    //   }
-    // }
-    //logd('Player ' + this.players[highestIndex].name + ' wins with ' + evalHands[highestIndex].handName);
+    this.logCommunityCards()
   };
 
   getHighestBet = function () {
@@ -241,36 +162,24 @@ class Game {
     return highestBet;
   };
 
-  /**
-   * Collect all bets from players to the board's pot
-   */
-  resetPlayerBets = function () {
+  resetPlayerBets = () =>
     this.players.forEach(player => player.bet = 0);
-    return this.pot;
-  };
 
-  getPot() {
-    return this.pot;
-  }
+  getPot = () => this.pot;
 
-
-  getActivePlayers = () => this.players.filter(player =>
+  getActivePlayers = () =>
+    this.players.filter(player =>
       !player.hasActed && !player.hasDone);
 
-  getCurrentPlayer = function () {
-    return this.players[this.turnPos];
-  };
+  getCurrentPlayer = () =>
+    this.players[this.turnPos];
 
-  /**
-   * Sets all players' hasActed to false
-   */
-  requestPlayerAction = function () {
-    for (let i = 0; i < this.players.length; i++) {
-      if (!this.players[i].hasDone) {
-        this.players[i].hasActed = false;
+  requestPlayerAction = () =>
+    this.players.forEach(player => {
+      if (!player.hasDone) {
+        player.hasActed = false;
       }
-    }
-  };
+    });
 }
 
 export default Game;

@@ -1,9 +1,11 @@
 let debug = true;
+let handLog;
 
-function logd(message) {
+function logger(message) {
+  handLog = handLog || [];
   if (debug) {
-    console.log(message);
+    handLog.push(message);
   }
 }
 
-export default logd;
+export {logger, handLog};
