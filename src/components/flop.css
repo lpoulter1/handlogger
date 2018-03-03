@@ -1,0 +1,8 @@
+.flop {
+  display: flex;
+  flex-direction: row;
+}
+
+.cardPicker {
+  margin: 10px;
+}
