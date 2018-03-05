@@ -14,26 +14,23 @@ class Player {
 
     this.lastAction = "";
     this.hasActed = false;      // acted for one round (call/check/raise)
-    this.hasDone = false;       // finish acted for one game (fold/allin)
+    this.foldedOrAllIn = false;       // finish acted for one game (fold/allin)
   }
 
   fold() {
     logger('Player ' + this.name + ' FOLD');
 
     this.lastAction = ACTIONS.FOLD;
-    this.hasDone = true;
-
-    this.game.incrementPlayerTurn();
+    this.foldedOrAllIn = true;
   }
 
   allin() {
     logger('Player ' + this.name + ' ALL-IN : ' + this.chips);
 
     this.lastAction = ACTIONS.ALL_IN;
-    this.hasDone = true;
+    this.foldedOrAllIn = true;
 
     this.addBet(this.chips);
-    this.game.incrementPlayerTurn();
   }
 
   callOrCheck() {
@@ -49,7 +46,6 @@ class Player {
       this.lastAction = "check";
       logger('Player ' + this.name + ' CHECK');
     }
-    this.game.incrementPlayerTurn();
   }
 
   raise(amount) {
@@ -60,9 +56,6 @@ class Player {
 
     logger('Player ' + this.name + ' Raises : ' + (diff + amount));
 
-    this.game.requestPlayerAction(); // other players must act
-    this.hasActed = true;
-    this.game.incrementPlayerTurn();
   }
 
   reset() {
@@ -72,7 +65,7 @@ class Player {
 
     this.lastAction = "";
     this.hasActed = false;
-    this.hasDone = false;
+    this.foldedOrAllIn = false;
   }
 
   addBet(amount){

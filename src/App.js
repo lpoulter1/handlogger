@@ -2,6 +2,7 @@ import React, {Component} from 'react';
 import Game from './helpers/Game';
 import ACTIONS from './helpers/ACTIONS';
 import {handLog} from './helpers/logger';
+import takeAction from './helpers/takeAction';
 
 class App extends Component {
 
@@ -29,21 +30,7 @@ class App extends Component {
   }
 
   takeAction = (player, action, amount) => {
-    if (action === ACTIONS.CALL) {
-      player.callOrCheck();
-    }
-
-    if (action === ACTIONS.CHECK) {
-      player.callOrCheck();
-    }
-
-    if (action === ACTIONS.RAISE) {
-      player.raise(amount);
-    }
-
-    if (action === ACTIONS.FOLD) {
-      player.fold();
-    }
+    takeAction(this.game, player, action, amount);
 
     this.setState({currentPlayer: this.game.getCurrentPlayer()})
   };
@@ -65,10 +52,10 @@ class App extends Component {
             onClick={this.takeAction.bind(null, currentPlayer, ACTIONS.CALL)}>
             Call
           </button>
-          <button
-            onClick={this.takeAction.bind(null, currentPlayer, ACTIONS.RAISE, 6)}>
-            Raise
-          </button>
+          <div>
+            <RaiseButton onChange={this.takeAction.bind(null, currentPlayer, ACTIONS.RAISE, 6)}>
+            </RaiseButton>
+          </div>
           <button
             onClick={this.takeAction.bind(null, currentPlayer, ACTIONS.FOLD)}>
             Fold
@@ -83,6 +70,39 @@ class App extends Component {
         {handLog.map(message => <div>{message}</div>)}
       </div>
     );
+  }
+}
+
+class RaiseButton extends Component {
+  constructor(props) {
+    super(props);
+    this.state = {
+      value: 0,
+    };
+
+    this.handleRaiseChange = this.handleRaiseChange.bind(this);
+    this.handleRaiseSubmit = this.handleRaiseSubmit.bind(this);
+  }
+
+  handleRaiseChange(event) {
+    this.setState({value: event.target.value});
+  }
+
+  handleRaiseSubmit() {
+    this.props.onChange(this.state.value);
+  }
+
+  render() {
+    return (
+      <div>
+        Raise: <input onChange={this.handleRaiseChange} type="number" name="raise-size"
+                      value={this.state.value}/>
+        <button
+          onClick={this.handleRaiseSubmit}>
+          Raise
+        </button>
+      </div>
+    )
   }
 }
 

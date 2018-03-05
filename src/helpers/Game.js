@@ -45,14 +45,12 @@ class Game {
     let smallBlindPos = (this.dealerPos + 1) % this.players.length;
     let bigBlindPos = (this.dealerPos + 2) % this.players.length;
 
-    // small and big pays blind
     this.players[smallBlindPos].addBet(1 / 2 * this.bigBlind);
     this.players[bigBlindPos].addBet(this.bigBlind);
     //
     logger('Player ' + this.players[smallBlindPos].name + ' pays small blind : ' + (1 / 2 * this.bigBlind));
     logger('Player ' + this.players[bigBlindPos].name + ' pays big blind : ' + this.bigBlind);
 
-    // determine whose turn it is
     this.turnPos = (bigBlindPos + 1) % this.players.length;
     logger('Now its player ' + this.getCurrentPlayer.name + '\'s turn');
 
@@ -64,22 +62,27 @@ class Game {
   incrementPlayerTurn = function () {
     do {
       this.turnPos = (this.turnPos + 1) % this.players.length;
-    } while (this.getCurrentPlayer().hasDone);
-
-    this.checkForNextRound();
+    } while (this.getCurrentPlayer().foldedOrAllIn);
   };
+
+  requestPlayerAction = () =>
+    this.players.forEach(player => {
+      if (!player.foldedOrAllIn) {
+        player.hasActed = false;
+      }
+    });
 
   playersStillLeftToAct = function () {
     let playersStillLeftToAct = this.players.filter(player =>
-      !player.hasActed && !player.hasDone);
+      !player.hasActed && !player.foldedOrAllIn);
 
-    console.log(`${playersStillLeftToAct.length} playersStillLeftToAct`, playersStillLeftToAct);
+    logger(`${playersStillLeftToAct.length} playersStillLeftToAct`);
 
     return playersStillLeftToAct.length === 0;
   };
 
   isEndOfHand() {
-    const playersDone = this.players.filter(player => player.hasDone);
+    const playersDone = this.players.filter(player => player.foldedOrAllIn);
     if (playersDone.length === (this.players.length - 1)) {
       return true;
     }
@@ -88,7 +91,7 @@ class Game {
   }
 
   nextRound = () => {
-    switch(this.round) {
+    switch (this.round) {
       case 'idle':
         this.start();
         break;
@@ -109,7 +112,7 @@ class Game {
     }
   };
 
-  checkForNextRound = function () {
+  checkForRoundEnd = function () {
     if (this.isEndOfHand()) {
       logger('========== ENDING HAND ==========');
       this.round = 'idle';
@@ -123,7 +126,7 @@ class Game {
   };
 
   drawCards = (cardsToDraw) => {
-    for(let i = 0; i < cardsToDraw; i++){
+    for (let i = 0; i < cardsToDraw; i++) {
       this.communityCards.push(this.deck.drawCard());
     }
   };
@@ -169,17 +172,10 @@ class Game {
 
   getActivePlayers = () =>
     this.players.filter(player =>
-      !player.hasActed && !player.hasDone);
+      !player.hasActed && !player.foldedOrAllIn);
 
   getCurrentPlayer = () =>
     this.players[this.turnPos];
-
-  requestPlayerAction = () =>
-    this.players.forEach(player => {
-      if (!player.hasDone) {
-        player.hasActed = false;
-      }
-    });
 }
 
 export default Game;
